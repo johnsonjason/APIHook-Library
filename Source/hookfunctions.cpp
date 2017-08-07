@@ -1,4 +1,5 @@
 #include "hookfunctions.h"
+#include "htypes.h"
 
 int HookFunction(void* FunctionOrigin, void* FunctionEnd, const char* FunctionHookData)
 {
