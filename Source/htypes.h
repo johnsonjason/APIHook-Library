@@ -1,5 +1,6 @@
 #ifndef HTYPES_H
 #define HTYPES_H
+#include <windows.h>
 
 struct AddressRecord
 {
