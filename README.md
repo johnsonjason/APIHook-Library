@@ -1,3 +1,3 @@
 # CustomHooks
 
-These are methods to hook functions from code injection in the process (such as using a DLL), it has the unique feature of symbolically hooking a function when the FunctionHookData argument is passed and then looks it up.
+This provides a simple to use library for API hooking. It accomplishes this by changing the control flow of the targeted subroutine to the code specified by the user which will return back to the original routine after the busy routine accomplishes what it needs to do.
