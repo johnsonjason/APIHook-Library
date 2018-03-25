@@ -1,5 +1,7 @@
 #include "chooks.h"
 
+std::vector<HookRecord> HookRecords;
+
 int HookFunction(void* FunctionOrigin, void* FunctionEnd, const char* FunctionHookData)
 {
 	HookRecord FunctionRecord;
