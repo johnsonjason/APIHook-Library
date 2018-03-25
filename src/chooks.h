@@ -17,8 +17,6 @@ struct HookRecord
 	unsigned char OriginBytes[5];
 };
 
-std::vector<HookRecord> HookRecords;
-
 int HookFunction(void* FunctionOrigin, void* FunctionEnd, const char* FunctionHookData);
 int RehookFunction(void* FunctionOrigin, void* FunctionEnd, const char* FunctionHookData);
 int TempUnhookFunction(void* FunctionOrigin, const char* FunctionHookData);
