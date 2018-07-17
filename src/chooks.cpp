@@ -41,38 +41,46 @@ std::int32_t hook_function(void* function_origin, void* function_end, std::strin
 	return 0;
 }
 
-int RehookFunction(void* FunctionOrigin, void* FunctionEnd, const char* FunctionHookData)
+std::int32_t rehook_function(std::string function_hook_data)
 {
-	HookRecord FunctionRecord;
+	hook_record function_record = { 0 };
 
-	for (size_t RecordIterator = 0; RecordIterator < HookRecords.size(); RecordIterator++)
+	for (std::size_t record_iterator = 0; record_iterator < hook_records.size(); record_iterator++)
 	{
-		if (strncmp(HookRecords[RecordIterator].FunctionHookData, FunctionHookData, strlen(FunctionHookData)) == 0)
+		if (function_hook_data.compare(hook_records[record_iterator].function_hook_data) == 0)
 		{
-			FunctionRecord = HookRecords[RecordIterator];
+			function_record = hook_records[record_iterator];
 			break;
 		}
 	}
 
-	if (FunctionRecord.HookFunction == NULL)
+	if (function_record.hook_function == nullptr)
+	{
 		return -1;
+	}
 
-	DWORD FormerPageRight;
+	std::uint32_t old_protection;
 
-	if (VirtualProtect(FunctionOrigin, 1, PAGE_EXECUTE_READWRITE, &FormerPageRight) == 0)
+	if (VirtualProtect(function_record.function_hook, 1, static_cast<std::uint32_t>(dbg_redef::page_protection::page_rwx),
+		reinterpret_cast<unsigned long*>(&old_protection)) == 0)
 		return GetLastError();
 
-	DWORD Origin = (DWORD)FunctionOrigin;
-	DWORD End = (DWORD)FunctionEnd;
+	std::uint32_t origin = reinterpret_cast<std::uint32_t>(function_record.function_hook);
+	std::uint32_t end = reinterpret_cast<std::uint32_t>(function_record.hook_function);
 
-	*(BYTE*)FunctionOrigin = 0xE9;
-	*(DWORD*)(Origin + 1) = (End - Origin) - 5;
+	*reinterpret_cast<std::uint8_t*>(function_record.function_hook) = 0xE9;
+	*reinterpret_cast<std::uint32_t*>(origin + 1) = (end - origin) - 5;
 
-	if (VirtualProtect(FunctionOrigin, 1, FormerPageRight, &FormerPageRight) == 0)
+	if (VirtualProtect(function_record.function_hook, 1, old_protection, reinterpret_cast<unsigned long*>(&old_protection)) == 0)
+	{
 		return GetLastError();
+	}
 
-	if (memcmp(FunctionRecord.OriginBytes, FunctionOrigin, 5) != 0)
-		return -2;
+	std::size_t cmp_relation = memcmp(function_record.origin_bytes, function_record.function_hook, 5);
+	if (cmp_relation != 0)
+	{
+		return cmp_relation;
+	}
 
 	return 0;
 }
