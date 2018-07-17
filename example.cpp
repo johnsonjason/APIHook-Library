@@ -1,56 +1,52 @@
-// By jasonfish4
-
+#include "stdafx.h"
+#include <Windows.h>
 #include "chooks.h"
-#include <winsock.h>
-#pragma comment(lib, "ws2_32.lib")
+#define UNDEFINED 0
 
-extern "C" int (WINAPI *psendto)(SOCKET socket, const char* buffer, int length, int flags, const struct sockaddr *to, int tolen) = sendto; // original function to call
-PVOID SendFunc = GetProcAddress(GetModuleHandleA("ws2_32.dll"), "sendto"); // Obtain a pointer to the sendto function in ws2_32.dll
+const void* table_packet = UNDEFINED
 
-volatile BOOL g_Captured = FALSE; // Check if the specific packet has been captured or not
-
-/*
-* Function to capture packets
-* If the packet has a length of 51, accept and return
-*/
-
-int WINAPI CapturePacket(SOCKET socket, const char* buffer, int length, int flags, const struct sockaddr* to, int tolen)
+BOOL WINAPI hook_getmessage_a(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax )
 {
-	// If packet has a length of 51
-	if (length == 51)
-		g_Captured = true; // Set g_Captured to true since the condition is true
-	
-	TempUnhookFunction(SendFunc, "winsock:sendto"); // Unhook the function to perform an __stdcall on sendto without recursively jumping back here
-	int result = psendto(socket, buffer, length, flags, to, tolen); // _stdcall sendto
-	RehookFunction(SendFunc, CapturePacket, "winsock:sendto"); // Rehook the function
-
-	return result; // Return the expected result
-}
-
-DWORD WINAPI HookControl(LPVOID lpParam)
-{
-	HookFunction(SendFunc, CapturePacket, "winsock:sendto"); // Hook the function and setup a symbolic name that can be referenced
-
-	// While g_Captured is false, Sleep for 1 millisecond to give the OS time to handle many other resources and not waste CPU
-  while (!g_Captured) 
-		Sleep(1); // I should be using a semaphore, but I'm lazy
-    
-	UnhookFunction(SendFunc, CapturePacket, "winsock:sendto"); // Unhook the function
-	return 0;
+	temp_unhook_function("user32:getmessagea");
+	BOOL test_retn = GetMessageA(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax);
+	if (lpMsg->message >= 256 && lpMsg->message <= 257)
+	{
+		switch (lpMsg->wParam)
+		{
+		case VK_LEFT:
+			__asm push 0x66;
+			__asm jmp table_packet;
+			break;
+		case VK_UP:
+			__asm push 0x65;
+			__asm jmp table_packet;
+			break;
+		case VK_RIGHT:
+			__asm push 0x68;
+			__asm jmp table_packet;
+			break;
+		case VK_DOWN:
+			__asm push 0x67;
+			__asm jmp table_packet;
+			break;
+		}
+		lpMsg->message = NULL;
+		lpMsg->wParam = NULL;
+	}
+	rehook_function("user32:getmessagea");
+	return test_retn;
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
-	HANDLE HookThread = NULL; // Thread handle for HookControl
-
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
-		HookThread = CreateThread(0, 0, HookControl, 0, 0, 0); // Create the thread
+		hook_function(GetProcAddress(GetModuleHandleA("user32.dll"), "GetMessageA"),
+		hook_getmessage_a, "user32:getmessagea");
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:
 	case DLL_PROCESS_DETACH:
-		CloseHandle(HookThread);
 		break;
 	}
 	return TRUE;
