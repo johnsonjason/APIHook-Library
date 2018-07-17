@@ -63,7 +63,9 @@ std::int32_t rehook_function(std::string function_hook_data)
 
 	if (VirtualProtect(function_record.function_hook, 1, static_cast<std::uint32_t>(dbg_redef::page_protection::page_rwx),
 		reinterpret_cast<unsigned long*>(&old_protection)) == 0)
+	{
 		return GetLastError();
+	}
 
 	std::uint32_t origin = reinterpret_cast<std::uint32_t>(function_record.function_hook);
 	std::uint32_t end = reinterpret_cast<std::uint32_t>(function_record.hook_function);
