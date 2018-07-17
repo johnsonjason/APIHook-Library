@@ -3,32 +3,40 @@
 
 static std::vector<hook_record> hook_records;
 
-int HookFunction(void* FunctionOrigin, void* FunctionEnd, const char* FunctionHookData)
+std::int32_t hook_function(void* function_origin, void* function_end, std::string function_hook_data)
 {
-	HookRecord FunctionRecord;
-	FunctionRecord.FunctionHook = FunctionOrigin;
-	FunctionRecord.HookFunction = FunctionEnd;
-	FunctionRecord.FunctionHookData = FunctionHookData;
-	memcpy(FunctionRecord.OriginBytes, FunctionOrigin, 5);
+	hook_record function_record = { 0 };
+	function_record.function_hook = function_origin;
+	function_record.hook_function = function_end;
+	function_record.function_hook_data = function_hook_data;
+	std::memcpy(function_record.origin_bytes, function_origin, 5);
 
-	HookRecords.push_back(FunctionRecord);
+	hook_records.push_back(function_record);
 
-	DWORD FormerPageRight;
+	std::uint32_t old_protection;
 
-	if (VirtualProtect(FunctionOrigin, 1, PAGE_EXECUTE_READWRITE, &FormerPageRight) == 0)
+	if (VirtualProtect(function_record.function_hook, 1, static_cast<std::uint32_t>(dbg_redef::page_protection::page_rwx),
+		reinterpret_cast<unsigned long*>(&old_protection)) == 0)
+	{
 		return GetLastError();
+	}
 
-	DWORD Origin = (DWORD)FunctionOrigin;
-	DWORD End = (DWORD)FunctionEnd;
+	std::uint32_t origin = reinterpret_cast<std::uint32_t>(function_record.function_hook);
+	std::uint32_t end = reinterpret_cast<std::uint32_t>(function_record.hook_function);
 
-	*(BYTE*)FunctionOrigin = 0xE9;
-	*(DWORD*)(Origin + 1) = (End - Origin) - 5;
+	*reinterpret_cast<std::uint8_t*>(function_record.function_hook) = 0xE9;
+	*reinterpret_cast<std::uint32_t*>(origin + 1) = (end - origin) - 5;
 
-	if (VirtualProtect(FunctionOrigin, 1, FormerPageRight, &FormerPageRight) == 0)
+	if (VirtualProtect(function_record.function_hook, 1, old_protection, reinterpret_cast<unsigned long*>(&old_protection)) == 0)
+	{
 		return GetLastError();
+	}
 
-	if (memcmp(FunctionRecord.OriginBytes, FunctionOrigin, 5) != 0)
-		return -2;
+	std::size_t cmp_relation = std::memcmp(function_record.origin_bytes, function_record.function_hook, 5);
+	if (cmp_relation != 0)
+	{
+		return cmp_relation;
+	}
 
 	return 0;
 }
