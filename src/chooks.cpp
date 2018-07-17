@@ -78,7 +78,7 @@ std::int32_t rehook_function(std::string function_hook_data)
 		return GetLastError();
 	}
 
-	std::size_t cmp_relation = memcmp(function_record.origin_bytes, function_record.function_hook, 5);
+	std::size_t cmp_relation = std::memcmp(function_record.origin_bytes, function_record.function_hook, 5);
 	if (cmp_relation != 0)
 	{
 		return cmp_relation;
