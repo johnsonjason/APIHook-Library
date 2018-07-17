@@ -1,6 +1,7 @@
+#include "stdafx.h"
 #include "chooks.h"
 
-std::vector<HookRecord> HookRecords;
+static std::vector<hook_record> hook_records;
 
 int HookFunction(void* FunctionOrigin, void* FunctionEnd, const char* FunctionHookData)
 {
